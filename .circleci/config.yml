@@ -1,0 +1,28 @@
+version: 2
+jobs:
+ build:
+   machine: true
+   steps:
+     - checkout
+     - run: curl $DATA_URL -o ./src/data.json
+     - run: docker build --rm=false -t registry.heroku.com/$APP_NAME/web .
+     - run: docker login --username=_ --password=$HEROKU_API_KEY registry.heroku.com
+     - run: docker push registry.heroku.com/$APP_NAME/web:latest
+     - run: curl https://cli-assets.heroku.com/install.sh | sh
+     - run: heroku container:release web -a $APP_NAME
+
+workflows:
+  version: 2
+  commit:
+    jobs:
+      - build
+  daily:
+    triggers:
+      - schedule:
+          cron: "30 10 * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - build
